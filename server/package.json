@@ -4,7 +4,9 @@
     "description": "CrowdCL job distribution and data collection server.",
     "version": "0.0.1",
     "dependencies": {
+        "async": "*",
         "express": "3.x",
-        "mongodb": "*"
+        "mongodb": "*",
+        "underscore": "*"
     }
 }
