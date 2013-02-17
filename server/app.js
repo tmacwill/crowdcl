@@ -9,6 +9,9 @@ app.configure(function() {
     app.use(express.bodyParser());
 
     app.use(function(req, res, next) {
+        // remove powered by header for security
+        res.removeHeader('X-Powered-By');
+
         // enable CORS
         res.header('Access-Control-Allow-Credentials', true);
         res.header('Access-Control-Allow-Headers', 'content-type, accept, x-requested-with')
@@ -18,15 +21,11 @@ app.configure(function() {
         else
             res.header('Access-Control-Allow-Origin', '*');
 
-        // intercept OPTIONS method
+        // special-case preflight options method
         if (req.method == 'OPTIONS')
             res.send(200);
-
-        // remove powered by header for security
-        else {
-            res.removeHeader('X-Powered-By');
+        else 
             next();
-        }
     }); 
 });
 

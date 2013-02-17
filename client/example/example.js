@@ -50,7 +50,10 @@ $(function() {
     var tmcl = new TMCL;
     var crowdcl = new CrowdCL({
         id: 'thomson',
-        server: 'http://172.16.214.139:3000'
+        server: 'http://172.16.214.139:3000',
+        onBest: function(best) {
+            alert('New high score! ' + best.score);
+        }
     });
 
     // compile kernel from source
@@ -86,7 +89,7 @@ $(function() {
         energies.push(e);
         crowdcl.save({
             points: points,
-            energy: e
+            score: e
         });
     }
 

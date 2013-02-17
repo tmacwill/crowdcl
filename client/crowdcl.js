@@ -23,12 +23,19 @@ var CrowdCL = (function() {
      *
      */
     CrowdCL.prototype.commit = function() {
+        // post all results to crowdcl server
+        var self = this;
         $.ajax({
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             type: 'POST',
             url: this.options.server + '/commit/' + this.options.id,
-            data: JSON.stringify({ results: stage })
+            data: JSON.stringify({ results: stage }),
+            success: function(response) {
+                console.log(response);
+                if (response.best !== false && self.options.onBest !== undefined)
+                    self.options.onBest(response.best);
+            }
         });
     };
 
