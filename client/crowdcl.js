@@ -32,7 +32,6 @@ var CrowdCL = (function() {
             url: this.options.server + '/commit/' + this.options.id,
             data: JSON.stringify({ results: stage }),
             success: function(response) {
-                console.log(response);
                 if (response.best !== false && self.options.onBest !== undefined)
                     self.options.onBest(response.best);
             }
@@ -50,8 +49,10 @@ var CrowdCL = (function() {
         stage.push(state);
 
         // if size of stage exceeds limit, then commit changes now
-        if (this.options.stage !== undefined && stage.length >= this.options.stage)
+        if (this.options.stage !== undefined && stage.length >= this.options.stage) {
             this.commit();
+            stage.length = 0;
+        }
     };
 
     return CrowdCL;

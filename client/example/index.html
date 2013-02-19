@@ -8,7 +8,12 @@
 
         <script src="../../tmcl/tmcl.js"></script>
         <script src="../crowdcl.js"></script>
-        <script src="example.js"></script>
+        <script src="../crowdclient.js"></script>
+        <script src="thomson.js"></script>
+
+        <script>
+            $(function() { new CrowdCLient(new Thomson(16)); });
+        </script>
     </head>
     <body>
         <div id="output"></div>
