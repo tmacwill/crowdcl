@@ -10,9 +10,9 @@ var ObjectID = require('mongodb').ObjectID;
  */
 module.exports = function(app, db) {
     // receive a new result
-    app.post('/commit/:id', function(request, response) {
+    app.post('/commit/:collection', function(request, response) {
         // get collection for results
-        var collection = db.collection(request.params.id);
+        var collection = db.collection(request.params.collection);
 
         // get the current best score, so we can notify client if they submitted a new best score
         var newBest = false;
@@ -37,9 +37,23 @@ module.exports = function(app, db) {
     });
 
     // get the best result so far
-    app.get('/best/:id', function(request, response) {
-        bestScore(db.collection(request.params.id), 1, function(best) {
+    app.get('/best/:collection', function(request, response) {
+        bestScore(db.collection(request.params.collection), 1, function(best) {
             response.json(best);
+        });
+    });
+
+    // view all results in a collection
+    app.get('/results/:collection', function(request, response) {
+        db.collection(request.params.collection).find().sort({ score: 1 }).toArray(function(error, items) {
+            response.json(items);
+        });
+    });
+
+    // get a single result in a collection
+    app.get('/results/:collection/:id', function(request, response) {
+        db.collection(request.params.collection).find({ _id: ObjectID(request.params.id) }).limit(1).toArray(function(error, items) {
+            response.json(items.pop());
         });
     });
 };
@@ -74,7 +88,7 @@ var bestScore = function(collection, sort, callback, verify) {
             // if result is invalid, then remove it and try again
             if (!valid) {
                 collection.remove({ _id: ObjectID(best._id.toString()) }, {w: 1}, function(error, result) {
-                    bestScore(collection);
+                    bestScore(collection, sort, callback, verify);
                 });
             }
 
