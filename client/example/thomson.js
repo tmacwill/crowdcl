@@ -1,5 +1,5 @@
 var Thomson = (function() {
-    var crowdcl, dt, energyKernel, forceKernel, n, points, forceResult, energyResult, forceResultHandle, energyResultHandle, tmcl;
+    var dt, energyKernel, forceKernel, n, points, forceResult, energyResult, forceResultHandle, energyResultHandle, tmcl;
     var energies = [];
     var min = Number.MAX_VALUE;
 
@@ -80,13 +80,6 @@ var Thomson = (function() {
 
         // connect to gpu
         tmcl = new TMCL;
-        crowdcl = new CrowdCL({
-            id: 'thomson',
-            server: 'http://172.16.214.139:3000',
-            onBest: function(best) {
-                alert('New high score! ' + best.score);
-            }
-        });
 
         // compile kernel from source
         energyKernel = tmcl.compile(energyKernelSource, 'clEnergyKernel');
@@ -103,23 +96,15 @@ var Thomson = (function() {
      * Display output that we have computed so far
      *
      */
-    Thomson.prototype.finish = function() {
-        // commit remaining changes to server
-        crowdcl.commit();
-
-        // display results
-        var html = '';
-        for (var i = 0; i < energies.length; i++)
-            html += energies[i] + '<br />';
-        html += '<br />Minimum: ' + min;
-        $('#output').html(html);
+    Thomson.prototype.interrupt = function() {
+        $('#output').append('<li>Minimum: ' + min + '</li>');
     };
 
     /**
      * Perform on iteration by generating a random set of points
      *
      */
-    Thomson.prototype.run = function() {
+    Thomson.prototype.run = function(callback) {
         // send data to gpu
         var pointsHandle = tmcl.toGPU(points);
 
@@ -139,10 +124,6 @@ var Thomson = (function() {
 
         // remember all energies
         energies.push(e);
-        crowdcl.save({
-            points: points,
-            score: e
-        });
 
         // compute forces for update step
         forceKernel({
@@ -166,6 +147,12 @@ var Thomson = (function() {
             points[3 * j + 1] = points[3 * j + 1] / length;
             points[3 * j + 2] = points[3 * j + 2] / length;
         }
+
+        // return points and energy
+        callback({
+            points: points,
+            score: e
+        });
     };
 
     return Thomson;

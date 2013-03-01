@@ -12,10 +12,37 @@
         <script src="thomson.js"></script>
 
         <script>
-            $(function() { new CrowdCLient(new Thomson(16)); });
+            $(function() { 
+                client = new CrowdCLient(new Thomson(1024), {
+                    id: 'thomson',
+                    server: 'http://172.16.214.139:3000',
+                    onBest: function(best) {
+                        alert('New high score! ' + best.score);
+                    },  
+                    onResult: function(result) {
+                        $('#output').append('<li>' + result.score + '</li>');
+                    }   
+                }); 
+
+                // interrupt toggled
+                var running = true;
+                $('#interrupt').on('click', function() {
+                    if (running) {
+                        client.interrupt();
+                        $(this).text('Resume');
+                    }
+                    else {
+                        client.resume();
+                        $(this).text('Interrupt');
+                    }
+
+                    running = !running;
+                });
+            }); 
         </script>
     </head>
     <body>
-        <div id="output"></div>
+        <button id="interrupt">Interrupt</button>
+        <ul id="output"></ul>
     </body>
 </html>
