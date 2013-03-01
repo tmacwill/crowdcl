@@ -1,6 +1,6 @@
 var CrowdCLient = (function() {
     // problem instance
-    var crowdcl, problem, options;
+    var crowdcl, idle, problem, options;
     var interrupted = false;
 
     /**
@@ -32,8 +32,30 @@ var CrowdCLient = (function() {
             onBest: options.onBest
         });
 
+        // register idle timer events
+        document.addEventListener('click', resetIdleTimer);
+        document.addEventListener('mousemove', resetIdleTimer);
+        document.addEventListener('keypress', resetIdleTimer);
+        setInterval(function() {
+            ++idle;
+        }, 1000);
+
+        // register close listener
+        var self = this;
+        window.addEventListener('beforeunload', function() {
+            self.interrupt();
+        });
+
         // start the first problem run
         this.resume();
+    };
+
+    /**
+     * Reset the idle timer
+     *
+     */
+    var resetIdleTimer = function() {
+        idle = 0;
     };
 
     /**
@@ -53,11 +75,14 @@ var CrowdCLient = (function() {
         if (options.onResult !== undefined)
             options.onResult(result);
 
+        // exponentially decrease the time between runs if the user remains idle
+        var timeout = Math.max(100, options.timeout - Math.pow(1.2, idle));
+
         // start a new run if we haven't been interrupted
         if (!interrupted)
             setTimeout(function() {
                 problem.run(runCallback);
-            }, options.timeout);
+            }, timeout);
     };
 
     /**
@@ -73,6 +98,14 @@ var CrowdCLient = (function() {
     };
 
     /**
+     * Check whether or not the problem is currently interrupted
+     *
+     */
+    CrowdCLient.prototype.interrupted = function() {
+        return interrupted;
+    };
+
+    /**
      * Resume the execution of the problem
      *
      */
@@ -83,6 +116,24 @@ var CrowdCLient = (function() {
         setTimeout(function() {
             problem.run(runCallback);
         }, options.timeout);
+    };
+
+
+    /**
+     * Pause the problem for a number of milliseconds, then resume
+     *
+     * @param {Number} milliseconds Number of milliseconds to sleep for
+     *
+     */
+    CrowdCLient.prototype.sleep = function(milliseconds) {
+        // stop the problem
+        this.interrupt();
+
+        // resume the problem after given amount of time
+        var self = this;
+        setTimeout(function() {
+            self.resume();
+        }, milliseconds);
     };
 
     return CrowdCLient;
