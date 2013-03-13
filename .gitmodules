@@ -1,3 +1,3 @@
-[submodule "tmcl"]
-	path = tmcl
-	url = git@github.com:tmacwill/tmcl.git
+[submodule "webcl-kernelcontext"]
+	path = webcl-kernelcontext
+	url = git@github.com:tmacwill/webcl-kernelcontext.git

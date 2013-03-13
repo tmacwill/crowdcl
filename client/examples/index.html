@@ -6,23 +6,23 @@
         <script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
         <script src="http://underscorejs.org/underscore-min.js"></script>
 
-        <script src="../../tmcl/tmcl.js"></script>
+        <script src="../../webcl-kernelcontext/kernelcontext.js"></script>
         <script src="../crowdcl.js"></script>
         <script src="../crowdclient.js"></script>
         <script src="thomson.js"></script>
 
         <script>
-            $(function() { 
+            $(function() {
                 client = new CrowdCLient(new Thomson(1024), {
                     id: 'thomson',
                     server: 'http://172.16.214.139:3000',
                     onBest: function(best) {
                         alert('New high score! ' + best.score);
-                    },  
+                    },
                     onResult: function(result) {
                         $('#output').append('<li>' + result.score + '</li>');
-                    }   
-                }); 
+                    }
+                });
 
                 // interrupt toggled
                 var running = true;

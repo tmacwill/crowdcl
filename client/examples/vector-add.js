@@ -16,7 +16,7 @@ var VectorAdd = (function() {
     function VectorAdd = function(length) {
         // connect to gpu and compile kernel
         n = length;
-        context = new TMCL;
+        context = new KernelContext;
         kernel = context.compile(source, 'clVectorAdd');
     };
 

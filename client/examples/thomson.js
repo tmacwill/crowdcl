@@ -79,7 +79,7 @@ var Thomson = (function() {
         energyResult = new Float32Array(n);
 
         // connect to gpu
-        context = new TMCL;
+        context = new KernelContext;
 
         // compile kernel from source
         energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');

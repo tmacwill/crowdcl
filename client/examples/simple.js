@@ -15,7 +15,7 @@ var Simple = (function() {
      */
     function Simple = function(length) {
         n = length;
-        context = new TMCL;
+        context = new KernelContext;
         kernel = context.compile(source, 'clIdentity');
     };
 

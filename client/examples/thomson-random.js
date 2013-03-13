@@ -55,7 +55,7 @@ var Thomson = (function() {
         result = new Float32Array(n);
 
         // connect to gpu
-        context = new TMCL;
+        context = new KernelContext;
         crowdcl = new CrowdCL({
             id: 'thomson',
             server: 'http://172.16.214.139:3000',
