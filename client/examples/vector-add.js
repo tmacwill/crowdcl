@@ -1,5 +1,5 @@
 var VectorAdd = (function() {
-    var kernel, n, tmcl;
+    var kernel, n, context;
 
     // kernel for adding two vectors
     var source = "__kernel void clVectorAdd(__global unsigned int* a, __global unsigned int* b, __global unsigned int* result, unsigned int width) { \
@@ -16,8 +16,8 @@ var VectorAdd = (function() {
     function VectorAdd = function(length) {
         // connect to gpu and compile kernel
         n = length;
-        tmcl = new TMCL;
-        kernel = tmcl.compile(source, 'clVectorAdd');
+        context = new TMCL;
+        kernel = context.compile(source, 'clVectorAdd');
     };
 
     /**
@@ -43,9 +43,9 @@ var VectorAdd = (function() {
         }
 
         // send data to gpu
-        var vector1Handle = tmcl.toGPU(vector1);
-        var vector2Handle = tmcl.toGPU(vector2)
-        var resultHandle = tmcl.toGPU(result);
+        var vector1Handle = context.toGPU(vector1);
+        var vector2Handle = context.toGPU(vector2)
+        var resultHandle = context.toGPU(result);
 
         // run kernel
         var local = 8;
@@ -56,7 +56,7 @@ var VectorAdd = (function() {
         }, vector1Handle, vector2Handle, resultHandle, new Uint32(n));
 
         // get result
-        tmcl.fromGPU(resultHandle, result);
+        context.fromGPU(resultHandle, result);
 
         callback({
             vector1: vector1,

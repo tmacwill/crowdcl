@@ -1,5 +1,5 @@
 var Thomson = (function() {
-    var dt, energyKernel, forceKernel, n, points, forceResult, energyResult, forceResultHandle, energyResultHandle, tmcl;
+    var dt, energyKernel, forceKernel, n, points, forceResult, energyResult, forceResultHandle, energyResultHandle, context;
     var energies = [];
     var min = Number.MAX_VALUE;
 
@@ -79,13 +79,13 @@ var Thomson = (function() {
         energyResult = new Float32Array(n);
 
         // connect to gpu
-        tmcl = new TMCL;
+        context = new TMCL;
 
         // compile kernel from source
-        energyKernel = tmcl.compile(energyKernelSource, 'clEnergyKernel');
-        forceKernel = tmcl.compile(forceKernelSource, 'clForceKernel');
-        energyResultHandle = tmcl.toGPU(energyResult);
-        forceResultHandle = tmcl.toGPU(forceResult);
+        energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
+        forceKernel = context.compile(forceKernelSource, 'clForceKernel');
+        energyResultHandle = context.toGPU(energyResult);
+        forceResultHandle = context.toGPU(forceResult);
 
         // generate an initial set of random points
         dt = 0.01;
@@ -106,7 +106,7 @@ var Thomson = (function() {
      */
     Thomson.prototype.run = function(callback) {
         // send data to gpu
-        var pointsHandle = tmcl.toGPU(points);
+        var pointsHandle = context.toGPU(points);
 
         // compute energies for this configuraton
         var local = n / 2;
@@ -117,7 +117,7 @@ var Thomson = (function() {
         }, pointsHandle, energyResultHandle, new Int32(n));
 
         // get energies from GPU, and check if we found a better configuration
-        tmcl.fromGPU(energyResultHandle, energyResult);
+        context.fromGPU(energyResultHandle, energyResult);
         var e = energy(energyResult, n);
         if (e < min)
             min = e;
@@ -132,7 +132,7 @@ var Thomson = (function() {
         }, pointsHandle, forceResultHandle, new Int32(n));
 
         // compute new locations for points
-        tmcl.fromGPU(forceResultHandle, forceResult);
+        context.fromGPU(forceResultHandle, forceResult);
 
         // update points based on forces
         for (var j = 0; j < n; j++) {

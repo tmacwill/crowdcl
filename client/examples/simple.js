@@ -1,5 +1,5 @@
 var Simple = (function() {
-    var kernel, n, tmcl;
+    var kernel, n, context;
 
     // kernel for adding two vectors
     var source = "__kernel void clIdentity(__global unsigned int* a, unsigned int width) { \
@@ -15,8 +15,8 @@ var Simple = (function() {
      */
     function Simple = function(length) {
         n = length;
-        tmcl = new TMCL;
-        kernel = tmcl.compile(source, 'clIdentity');
+        context = new TMCL;
+        kernel = context.compile(source, 'clIdentity');
     };
 
     /**
@@ -32,8 +32,13 @@ var Simple = (function() {
      *
      */
     Simple.prototype.run = function(callback) {
+        // populate array
         var array = new Uint32Array(n);
-        var arrayHandle = tmcl.toGPU(array);
+        for (var i = 0; i < n; i++)
+            array[i] = i;
+
+        // send data to gpu
+        var arrayHandle = context.toGPU(array);
 
         // run kernel
         var local = 8;
@@ -43,7 +48,8 @@ var Simple = (function() {
             global: global
         }, arrayHandle, new Uint32(n));
 
-        tmcl.fromGPU(arrayHandle, array);
+        // get data from gpu
+        context.fromGPU(arrayHandle, array);
 
         callback({
             score: n

@@ -1,5 +1,5 @@
 var Thomson = (function() {
-    var crowdcl, energyKernel, n, points, result, resultHandle, tmcl;
+    var crowdcl, energyKernel, n, points, result, resultHandle, context;
     var energies = [];
     var min = Number.MAX_VALUE;
 
@@ -55,7 +55,7 @@ var Thomson = (function() {
         result = new Float32Array(n);
 
         // connect to gpu
-        tmcl = new TMCL;
+        context = new TMCL;
         crowdcl = new CrowdCL({
             id: 'thomson',
             server: 'http://172.16.214.139:3000',
@@ -65,8 +65,8 @@ var Thomson = (function() {
         });
 
         // compile kernel from source
-        energyKernel = tmcl.compile(energyKernelSource, 'clEnergyKernel');
-        resultHandle = tmcl.toGPU(result);
+        energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
+        resultHandle = context.toGPU(result);
     };
 
     /**
@@ -94,7 +94,7 @@ var Thomson = (function() {
         generate(points, n);
 
         // send data to gpu
-        var pointsHandle = tmcl.toGPU(points);
+        var pointsHandle = context.toGPU(points);
 
         // compute energies for this configuraton
         var local = n / 2;
@@ -105,7 +105,7 @@ var Thomson = (function() {
         }, pointsHandle, resultHandle, new Int32(n));
 
         // get energies from GPU, and check if we found a better configuration
-        tmcl.fromGPU(resultHandle, result);
+        context.fromGPU(resultHandle, result);
         var e = energy(result, n);
         if (e < min)
             min = e;
