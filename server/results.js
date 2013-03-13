@@ -74,8 +74,6 @@ var bestScore = function(collection, sort, callback, verify) {
 
     // get minimum (or maximum) score
     collection.find().sort({ score: sort }).limit(1).toArray(function(error, items) {
-        console.log(items);
-
         // no scores exist yet
         if (items.length == 0) {
             callback(false);
