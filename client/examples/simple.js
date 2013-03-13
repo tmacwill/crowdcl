@@ -15,8 +15,12 @@ var Simple = (function() {
      */
     function Simple = function(length) {
         n = length;
-        context = new KernelContext;
-        kernel = context.compile(source, 'clIdentity');
+
+        try {
+            context = new KernelContext;
+            kernel = context.compile(source, 'clIdentity');
+        }
+        catch (e) { }
     };
 
     /**

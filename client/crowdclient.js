@@ -14,6 +14,15 @@ var CrowdCLient = (function() {
         if (_options.server === undefined)
             throw 'Server is not defined';
 
+        if (window.WebCL === undefined) {
+            if (_options.status === undefined)
+                console.log('WebCL is not available!');
+            else
+                document.getElementById(_options.status).innerHTML = 'WebCL is not available! Download it <a href="http://webcl.nokiaresearch.com" target="_blank">here</a>';
+
+            return;
+        }
+
         // optional parameters
         if (_options.onBest === undefined)
             _options.onBest = function() {};

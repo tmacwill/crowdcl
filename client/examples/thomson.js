@@ -79,17 +79,20 @@ var Thomson = (function() {
         energyResult = new Float32Array(n);
 
         // connect to gpu
-        context = new KernelContext;
+        try {
+            context = new KernelContext;
 
-        // compile kernel from source
-        energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
-        forceKernel = context.compile(forceKernelSource, 'clForceKernel');
-        energyResultHandle = context.toGPU(energyResult);
-        forceResultHandle = context.toGPU(forceResult);
+            // compile kernel from source
+            energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
+            forceKernel = context.compile(forceKernelSource, 'clForceKernel');
+            energyResultHandle = context.toGPU(energyResult);
+            forceResultHandle = context.toGPU(forceResult);
 
-        // generate an initial set of random points
-        dt = 0.01;
-        generate(points, n);
+            // generate an initial set of random points
+            dt = 0.01;
+            generate(points, n);
+        }
+        catch (e) { }
     };
 
     /**

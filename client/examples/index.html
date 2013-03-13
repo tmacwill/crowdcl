@@ -16,6 +16,7 @@
                 client = new CrowdCLient(new Thomson(1024), {
                     id: 'thomson',
                     server: 'http://172.16.214.139:3000',
+                    status: 'status',
                     onBest: function(best) {
                         alert('New high score! ' + best.score);
                     },
@@ -38,10 +39,11 @@
 
                     running = !running;
                 });
-            }); 
+            });
         </script>
     </head>
     <body>
+        <div id="status"></div>
         <button id="interrupt">Interrupt</button>
         <ul id="output"></ul>
     </body>

@@ -14,10 +14,14 @@ var VectorAdd = (function() {
      *
      */
     function VectorAdd = function(length) {
-        // connect to gpu and compile kernel
         n = length;
-        context = new KernelContext;
-        kernel = context.compile(source, 'clVectorAdd');
+
+        // connect to gpu and compile kernel
+        try {
+            context = new KernelContext;
+            kernel = context.compile(source, 'clVectorAdd');
+        }
+        catch (e) { }
     };
 
     /**
