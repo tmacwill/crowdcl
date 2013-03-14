@@ -17,6 +17,7 @@
                     id: 'thomson',
                     server: 'http://172.16.214.139:3000',
                     status: 'status',
+						        timeout: 1,  // Time (ms) between Problem::run calls
                     onBest: function(best) {
                         alert('New high score! ' + best.score);
                     },
