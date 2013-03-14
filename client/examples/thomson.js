@@ -112,8 +112,8 @@ var Thomson = (function() {
         var pointsHandle = context.toGPU(points);
 
         // compute energies for this configuraton
-        var local = n / 2;
-        var global = n;
+        var local = 126;
+        var global = Math.ceil(n / 126);
         energyKernel({
             local: local,
             global: global
