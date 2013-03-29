@@ -3,8 +3,7 @@ var config = require('./config');
 var express = require('express');
 var app = express();
 var MongoEngine = require('./mongoengine');
-var mongo = require('mongodb').MongoClient;
-var mysql = require('mysql');
+var MySQLEngine = require('./mysqlengine');
 var _ = require('underscore');
 
 // configure express
@@ -36,10 +35,8 @@ app.configure(function() {
 async.waterfall([
     // connect to mongo
     function(callback) {
-        new MongoEngine(config.mongo.host, config.mongo.port, config.mongo.database, callback);
-
-        //var db = mysql.createConnection(config.mysql);
-        //db.connect();
+        //new MongoEngine(config.mongo.host, config.mongo.port, config.mongo.database, callback);
+        new MySQLEngine(config.mysql.host, config.mysql.user, config.mysql.password, config.mysql.database, callback);
     },
 
     // load modules
