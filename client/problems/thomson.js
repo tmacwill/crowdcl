@@ -121,8 +121,8 @@ var Thomson = (function() {
         // get energies from GPU, and check if we found a better configuration
         context.fromGPU(d_energy, part_energy);
 
-				var e = energy(part_energy, n);
-				min = Math.min(min, e);
+        var e = energy(part_energy, n);
+        min = Math.min(min, e);
 
         // remember all energies
         energies.push(e);
@@ -136,19 +136,19 @@ var Thomson = (function() {
         // get forces from GPU to update the points
         context.fromGPU(d_force, force);
 
-				//
-				// compute the step size
-				//
+        //
+        // compute the step size
+        //
 
-				// Determine the maximum squared cross product
-				var maxcrossSq = 0;
-				for (var j = 0; j < n; ++j) {
-						var a = points[3*j+1] * force[3*j+2] - points[3*j+2] * force[3*j+1];
-						var b = points[3*j+2] * force[3*j+0] - points[3*j+0] * force[3*j+2];
-						var c = points[3*j+0] * force[3*j+1] - points[3*j+1] * force[3*j+0];
-						maxcrossSq = Math.max(maxcrossSq, a*a + b*b + c*c);
-				}
-				var step_size = dt / (n * Math.pow(maxcrossSq, 0.4));
+        // Determine the maximum squared cross product
+        var maxcrossSq = 0;
+        for (var j = 0; j < n; ++j) {
+            var a = points[3*j+1] * force[3*j+2] - points[3*j+2] * force[3*j+1];
+            var b = points[3*j+2] * force[3*j+0] - points[3*j+0] * force[3*j+2];
+            var c = points[3*j+0] * force[3*j+1] - points[3*j+1] * force[3*j+0];
+            maxcrossSq = Math.max(maxcrossSq, a*a + b*b + c*c);
+        }
+        var step_size = dt / (n * Math.pow(maxcrossSq, 0.4));
 
         // update points based on forces
         for (var j = 0; j < n; j++) {
@@ -159,20 +159,28 @@ var Thomson = (function() {
 
             // Normalize coordinates
             var length = Math.sqrt(Math.pow(points[3*j    ], 2) +
-																	 Math.pow(points[3*j + 1], 2) +
-																	 Math.pow(points[3*j + 2], 2));
+                                   Math.pow(points[3*j + 1], 2) +
+                                   Math.pow(points[3*j + 2], 2));
             points[3*j    ] = points[3*j    ] / length;
             points[3*j + 1] = points[3*j + 1] / length;
             points[3*j + 2] = points[3*j + 2] / length;
         }
 
-				// TODO: Only sync when we hit our stopping condition for the relaxation
+        // TODO: Only sync when we hit our stopping condition for the relaxation
 
         // return points and energy
         callback({
             points: points,
             score: e
         });
+    };
+
+    /**
+     * Verify that an input is valid
+     *
+     */
+    Thomson.verify = function(input) {
+        return true;
     };
 
     return Thomson;
