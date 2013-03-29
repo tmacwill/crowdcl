@@ -36,7 +36,7 @@ MySQLEngine.prototype.best = function(collection, sort, callback, verify) {
     // get minimum (or maximum) score
     this.db.query('select * from ' + collection + ' order by score ' + (sort ? 'asc' : 'desc') + ' limit 1', function(error, items, fields) {
         // no scores exist yet
-        if (items.length == 0) {
+        if (items === undefined || items.length == 0) {
             callback(false);
             return false;
         }

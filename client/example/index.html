@@ -9,7 +9,7 @@
         <script src="../../webcl-kernelcontext/kernelcontext.js"></script>
         <script src="../crowdcl.js"></script>
         <script src="../crowdclient.js"></script>
-        <script src="thomson.js"></script>
+        <script src="../problems/thomson.js"></script>
 
         <script>
             $(function() {
@@ -17,9 +17,9 @@
                     id: 'thomson',
                     server: 'http://172.16.214.139:3000',
                     status: 'status',
-						        timeout: 1,  // Time (ms) between Problem::run calls
+                    timeout: 1,  // Time (ms) between Problem::run calls
                     onBest: function(best) {
-                        alert('New high score! ' + best.score);
+                        $('#output').append('<li>New high score!</li>');
                     },
                     onResult: function(result) {
                         $('#output').append('<li>' + result.score + '</li>');

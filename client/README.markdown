@@ -29,3 +29,11 @@ This class can also implement the following optional methods:
 
 * `interrupt`: Pause the execution of the run loop.
 * `sync`: Override the default saving behavior.
+
+## Minifying
+
+To minify a problem, simply run:
+
+    ./build.sh PROBLEM
+
+where `PROBLEM` is the name of a problem from the `problems/` directory. The `index.html` file in the `example/` directory shows how a problem can be included on a web page.
