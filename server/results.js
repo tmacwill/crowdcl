@@ -1,5 +1,4 @@
 var _ = require('underscore');
-var ObjectID = require('mongodb').ObjectID;
 
 /**
  * Module for keeping track of the results of computations
@@ -11,19 +10,13 @@ var ObjectID = require('mongodb').ObjectID;
 module.exports = function(app, db) {
     // receive a new result
     app.post('/commit/:collection', function(request, response) {
-        // get collection for results
-        var collection = db.collection(request.params.collection);
-
         // get the current best score, so we can notify client if they submitted a new best score
         var newBest = false;
-        bestScore(collection, 1, function(best) {
+        db.best(request.params.collection, 1, function(best) {
             // insert each result
             _.map(request.body.results, function(result) {
                 result.__verified = false;
-                collection.insert(result, {w: 1}, function(error, r) {
-                    if (error)
-                        response.json(500, { success: false });
-                });
+                db.insert(request.params.collection, result);
 
                 // we have found a better score, so keep track
                 if (compareScores(best, result, true)) {
@@ -38,22 +31,22 @@ module.exports = function(app, db) {
 
     // get the best result so far
     app.get('/best/:collection', function(request, response) {
-        bestScore(db.collection(request.params.collection), 1, function(best) {
+        db.best(request.params.collection, 1, function(best) {
             response.json(best);
         });
     });
 
     // view all results in a collection
     app.get('/results/:collection', function(request, response) {
-        db.collection(request.params.collection).find().sort({ score: 1 }).toArray(function(error, items) {
-            response.json(items);
+        db.results(request.params.collection, function(results) {
+            response.json(results);
         });
     });
 
     // get a single result in a collection
     app.get('/results/:collection/:id', function(request, response) {
-        db.collection(request.params.collection).find({ _id: ObjectID(request.params.id) }).limit(1).toArray(function(error, items) {
-            response.json(items.pop());
+        db.result(request.params.collection, request.params.id, function(result) {
+            response.json(result);
         });
     });
 };
@@ -66,7 +59,6 @@ module.exports = function(app, db) {
  * @param {Function} callback Callback function to execute with best answer
  * @param {Boolean} verify Whether or not to verify the score is best
  *
- */
 var bestScore = function(collection, sort, callback, verify) {
     // verify scores by default
     if (verify == undefined)
@@ -94,8 +86,8 @@ var bestScore = function(collection, sort, callback, verify) {
 
             // mark result as verified
             else {
-                collection.update({ 
-                    _id: ObjectID(best._id.toString()) 
+                collection.update({
+                    _id: ObjectID(best._id.toString())
                 }, { $set: { __verified: true }}, {w: 1}, function(error, result) {
                     best.__verified = true;
                     callback(best);
@@ -107,6 +99,7 @@ var bestScore = function(collection, sort, callback, verify) {
             callback(best);
     });
 };
+*/
 
 /**
  * Compare two scores
@@ -125,9 +118,4 @@ var compareScores = function(current, compare, sort) {
         return (parseFloat(compare.score) < parseFloat(current.score));
     else
         return (parseFloat(compare.score) > parseFloat(current.score));
-};
-
-// TODO: abstraction for score verification
-var verifyScore = function(result) {
-    return true;
 };

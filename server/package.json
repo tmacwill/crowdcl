@@ -2,9 +2,10 @@
     "name": "crowdcl-server",
     "author": "Tommy MacWilliam <tmacwilliam@cs.harvard.edu>",
     "description": "CrowdCL job distribution and data collection server.",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "dependencies": {
         "async": "*",
+        "mysql": "2.0.0-alpha7"
         "express": "3.x",
         "mongodb": "*",
         "underscore": "*"

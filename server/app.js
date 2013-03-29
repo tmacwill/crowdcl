@@ -1,7 +1,10 @@
 var async = require('async');
+var config = require('./config');
 var express = require('express');
 var app = express();
+var MongoEngine = require('./mongoengine');
 var mongo = require('mongodb').MongoClient;
+var mysql = require('mysql');
 var _ = require('underscore');
 
 // configure express
@@ -24,16 +27,19 @@ app.configure(function() {
         // special-case preflight options method
         if (req.method == 'OPTIONS')
             res.send(200);
-        else 
+        else
             next();
-    }); 
+    });
 });
 
 // initialize server
 async.waterfall([
-    // connect to database
-    function(callback) { 
-        mongo.connect('mongodb://localhost:27017/crowdcl', callback);
+    // connect to mongo
+    function(callback) {
+        new MongoEngine(config.mongo.host, config.mongo.port, config.mongo.database, callback);
+
+        //var db = mysql.createConnection(config.mysql);
+        //db.connect();
     },
 
     // load modules

@@ -13,7 +13,7 @@ Place the following configuration in /etc/yum.repos.d/10gen.repo file:
 
 Now, run:
 
-    yum install mongo-10gen mongo-10gen-server
+    yum install mongo-10gen mongo-10gen-server nodejs mysql mysql-devel
 
 To start running Mongo, execute:
 
