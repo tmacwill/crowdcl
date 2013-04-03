@@ -1,6 +1,6 @@
 var CrowdCLient = (function() {
     // problem instance
-    var crowdcl, idle, problem, options;
+    var crowdcl, idle, iterations = 0, problem, min = Number.MAX_VALUE, options, time = 0;
     var interrupted = false;
 
     /**
@@ -80,6 +80,8 @@ var CrowdCLient = (function() {
         else
             crowdcl.save(result);
 
+        min = Math.min(min, result.score);
+
         // if user specified result callback, inform of result
         if (options.onResult !== undefined)
             options.onResult(result);
@@ -90,7 +92,17 @@ var CrowdCLient = (function() {
         // start a new run if we haven't been interrupted
         if (!interrupted)
             setTimeout(function() {
+                var start = new Date;
                 problem.run(runCallback);
+                var end = new Date;
+
+                time += end - start;
+                iterations++;
+
+                if (iterations == 100) {
+                    console.log(min);
+                    console.log(time / 1000);
+                }
             }, timeout);
     };
 

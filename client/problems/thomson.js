@@ -1,7 +1,14 @@
 var Thomson = (function() {
-    var dt, energyKernel, forceKernel, n, points, force, part_energy, d_force, d_energy, context;
+    var energyKernel, forceKernel, n, points, force, part_energy, d_force, d_energy, context;
     var energies = [];
+    var dt = 1.0;
+    var dtLimit = 0.00006;
     var min = Number.MAX_VALUE;
+    var lastMeasure = Number.MAX_VALUE;
+    var lastEnergy = -Number.MAX_VALUE;
+    var lastFell = true;
+    var oscillating = false;
+    var energyTest = false;
 
     // kernel for computing the energy on the sphere
     var energyKernelSource = "__kernel void clEnergyKernel(__global float* points, __global float* result, int n) { \
@@ -89,7 +96,6 @@ var Thomson = (function() {
             d_force = context.toGPU(force);
 
             // generate an initial set of random points
-            dt = 0.01;
             generate(points, n);
         } catch (e) {}
     };
@@ -120,12 +126,8 @@ var Thomson = (function() {
 
         // get energies from GPU, and check if we found a better configuration
         context.fromGPU(d_energy, part_energy);
-
         var e = energy(part_energy, n);
         min = Math.min(min, e);
-
-        // remember all energies
-        energies.push(e);
 
         // compute forces for update step
         forceKernel({
@@ -166,11 +168,51 @@ var Thomson = (function() {
             points[3*j + 2] = points[3*j + 2] / length;
         }
 
+        // update value for dt
+        var currentMeasure = maxcrossSq;
+        if (dt > dtLimit) {
+            // if maxCrossSq is oscillating, decrease dt
+            if (((currentMeasure < lastMeasure) != lastFell) && oscillating) {
+                dt *= .90;
+                oscillating = false;
+            }
+            else if ((currentMeasure < lastMeasure) != lastFell) {
+                oscillating = true;
+            }
+            // if maxCrossSq is falling, increase dt
+            else if (lastFell) {
+                dt *= 1.01;
+                oscillating = false;
+            }
+            else if (!energyTest) {
+                lastEnergy = energy;
+                energyTest = true;
+            }
+            // if energy is rising, drop tStep quickly
+            else if (energy > lastEnergy) {
+                dt *= .5;
+                oscillating = false;
+                energyTest = false;
+            }
+            // if energy is falling, increase tStep
+            else {
+                dt *= 1.1;
+                oscillating = false;
+                energyTest = false;
+            }
+        }
+
+        // remember results for this run
+        lastFell = currentMeasure < lastMeasure;
+        lastMeasure = currentMeasure;
+
+        console.log(dt);
+
         // TODO: Only sync when we hit our stopping condition for the relaxation
 
         // return points and energy
         callback({
-            points: points,
+            //points: points,
             score: e
         });
     };
