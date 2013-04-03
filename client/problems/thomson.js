@@ -1,5 +1,6 @@
 var Thomson = (function() {
-    var energyKernel, forceKernel, n, points, force, part_energy, d_force, d_energy, context;
+    var energyKernel, forceKernel, n, points, force, part_energy, d_force, d_energy, context, start, end;
+    var toDeviceTime = 0, partEnergyTime = 0, energyTime = 0, forceTime = 0, forceTransferTime = 0, iterations = 0;
     var energies = [];
     var dt = 1.0;
     var dtLimit = 0.00006;
@@ -114,29 +115,44 @@ var Thomson = (function() {
      */
     Thomson.prototype.run = function(callback) {
         // send data to gpu
+        start = new Date;
         var d_points = context.toGPU(points);
+        end = new Date;
+        toDeviceTime += (end - start);
 
         // compute energies for this configuraton
-        var local = Math.min(64,n);
+        var local = Math.min(64, n);
         var global = n;
+        start = new Date;
         energyKernel({
             local: local,
             global: global
         }, d_points, d_energy, new Int32(n));
+        end = new Date;
+        energyTime += (end - start);
 
         // get energies from GPU, and check if we found a better configuration
+        start = new Date;
         context.fromGPU(d_energy, part_energy);
+        end = new Date;
+        partEnergyTime += (end - start);
         var e = energy(part_energy, n);
         min = Math.min(min, e);
 
         // compute forces for update step
+        start = new Date;
         forceKernel({
             local: local,
             global: global
         }, d_points, d_force, new Int32(n));
+        end = new Date;
+        forceTime += (end - start);
 
         // get forces from GPU to update the points
+        start = new Date;
         context.fromGPU(d_force, force);
+        end = new Date;
+        forceTransferTime += (end - start);
 
         //
         // compute the step size
@@ -202,11 +218,18 @@ var Thomson = (function() {
             }
         }
 
+        if (iterations % 25 == 0) {
+            console.log('To device time: ' + (toDeviceTime / iterations));
+            console.log('GPU energy computation: ' + (energyTime / iterations));
+            console.log('Energy from device: ' + (partEnergyTime / iterations));
+            console.log('GPU force computation: ' + (forceTime / iterations));
+            console.log('Force from device: ' + (forceTransferTime / iterations));
+        }
+
         // remember results for this run
         lastFell = currentMeasure < lastMeasure;
         lastMeasure = currentMeasure;
-
-        console.log(dt);
+        ++iterations;
 
         // TODO: Only sync when we hit our stopping condition for the relaxation
 
