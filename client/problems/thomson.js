@@ -1,5 +1,6 @@
 var Thomson = (function() {
-    var energyKernel, forceKernel, n, points, force, part_energy, d_force, d_energy, context, start, end;
+    var energyKernel, forceKernel, updateKernel;
+		var n, points, force, part_energy, d_force, d_energy, context, start, end;
     var toDeviceTime = 0, partEnergyTime = 0, energyTime = 0, forceTime = 0, forceTransferTime = 0, iterations = 0;
     var energies = [];
     var dt = 1.0;
@@ -10,6 +11,8 @@ var Thomson = (function() {
     var lastFell = true;
     var oscillating = false;
     var energyTest = false;
+
+		// TODO: Parameterize on float/double and use whatever the device supports?
 
     // kernel for computing the energy on the sphere
     var energyKernelSource = "__kernel void clEnergyKernel(__global float* points, __global float* result, int n) { \
@@ -47,6 +50,23 @@ var Thomson = (function() {
         result[3*i+2] = total_z / 2.0; \
     }";
 
+		var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, int n) { \
+         unsigned int i = get_global_id(0); \
+         if (i > n) return; \
+\
+         // shift each point by the product of force and time step \
+         points[3*j    ] += force[3*j    ] * step_size; \
+         points[3*j + 1] += force[3*j + 1] * step_size; \
+         points[3*j + 2] += force[3*j + 2] * step_size; \
+\
+         // Normalize coordinates \
+         var length = sqrt(pow(points[3*j    ], 2) + \
+                           pow(points[3*j + 1], 2) + \
+                           pow(points[3*j + 2], 2)); \
+         points[3*j    ] = points[3*j    ] / length; \
+         points[3*j + 1] = points[3*j + 1] / length; \
+         points[3*j + 2] = points[3*j + 2] / length; \
+    }"
     /**
      * Generate random points on a sphere
      *
@@ -93,7 +113,8 @@ var Thomson = (function() {
             // compile kernel from source
             energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
             forceKernel = context.compile(forceKernelSource, 'clForceKernel');
-            d_energy = context.toGPU(part_energy);
+            updateKernel = context.compile(updateKernelSourcem, 'clUpdateKernel');
+						d_energy = context.toGPU(part_energy);
             d_force = context.toGPU(force);
 
             // generate an initial set of random points
@@ -169,6 +190,11 @@ var Thomson = (function() {
         var step_size = dt / (n * Math.pow(maxcrossSq, 0.4));
 
         // update points based on forces
+				updateKernel({
+						local: local,
+						global: global
+				}, d_points, d_force, new Float32(step_size), new Int32(n));
+				/*
         for (var j = 0; j < n; j++) {
             // shift each point by the product of force and time step
             points[3*j    ] += force[3*j    ] * step_size;
@@ -183,6 +209,7 @@ var Thomson = (function() {
             points[3*j + 1] = points[3*j + 1] / length;
             points[3*j + 2] = points[3*j + 2] / length;
         }
+				*/
 
         // update value for dt
         var currentMeasure = maxcrossSq;
