@@ -50,25 +50,26 @@ var Thomson = (function() {
         result[3*i+2] = total_z / 2.0; \
     }";
 
-    var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, int n) { \
+    var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, unsigned int n) { \
          unsigned int i = get_global_id(0); \
          if (i > n) return; \
 \
-         // shift each point by the product of force and time step \
-         points[3*j    ] += force[3*j    ] * step_size; \
-         points[3*j + 1] += force[3*j + 1] * step_size; \
-         points[3*j + 2] += force[3*j + 2] * step_size; \
+         /* shift each point by the product of force and time step */ \
+         points[3*i    ] += force[3*i    ] * step_size; \
+         points[3*i + 1] += force[3*i + 1] * step_size; \
+         points[3*i + 2] += force[3*i + 2] * step_size; \
 \
-         // Normalize coordinates \
-         float length = sqrt(pow(points[3*j    ], 2) + \
-                             pow(points[3*j + 1], 2) + \
-                             pow(points[3*j + 2], 2)); \
-         points[3*j    ] = points[3*j    ] / length; \
-         points[3*j + 1] = points[3*j + 1] / length; \
-         points[3*j + 2] = points[3*j + 2] / length; \
-    }"
+         /* Normalize coordinates */ \
+         /* \
+         float length = sqrt(pow(points[3*i    ], 2) + \
+                             pow(points[3*i + 1], 2) + \
+                             pow(points[3*i + 2], 2)); \
+         points[3*i    ] /= length; \
+         points[3*i + 1] /= length; \
+         points[3*i + 2] /= length; \
+    */}";
 
-    var maxCrossSource = "__kernel void clMaxCrossKernel(__global float* points, __global float* force, __global float* result, int n) {
+    var maxCrossSource = "__kernel void clMaxCrossKernel(__global float* points, __global float* force, __global float* result, unsigned int n) { \
         unsigned int i = get_global_id(0); \
         if (i > n) \
             return; \
@@ -128,7 +129,7 @@ var Thomson = (function() {
             // compile kernel from source
             energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
             forceKernel = context.compile(forceKernelSource, 'clForceKernel');
-            updateKernel = context.compile(updateKernelSourcem, 'clUpdateKernel');
+            updateKernel = context.compile(updateKernelSource, 'clUpdateKernel');
             maxCrossKernel = context.compile(maxCrossSource, 'clMaxCrossKernel');
             maxCrossReductionKernel = utils.reductionKernel(Float32Array, '(a > b) ? a : b');
 
@@ -177,6 +178,7 @@ var Thomson = (function() {
         end = new Date;
         partEnergyTime += (end - start);
         var e = energy(part_energy, n);
+        console.log(e);
         min = Math.min(min, e);
 
         // compute forces for update step
@@ -189,10 +191,10 @@ var Thomson = (function() {
         forceTime += (end - start);
 
         // get forces from GPU to update the points
-        start = new Date;
-        context.fromGPU(d_force, force);
-        end = new Date;
-        forceTransferTime += (end - start);
+        // start = new Date;
+        // context.fromGPU(d_force, force);
+        // end = new Date;
+        // forceTransferTime += (end - start);
 
         //
         // compute the step size
@@ -202,7 +204,7 @@ var Thomson = (function() {
         maxCrossKernel({
             local: local,
             global: global
-        }, d_points, d_force, d_maxCrossResult, new Int32(n));
+        }, d_points, d_force, d_maxCrossResult, new Uint32(n));
 
         // compute step size
         var maxcrossSq = maxCrossReductionKernel(d_maxCrossResult, n);
@@ -212,7 +214,7 @@ var Thomson = (function() {
         updateKernel({
             local: local,
             global: global
-        }, d_points, d_force, new Float32(step_size), new Int32(n));
+        }, d_points, d_force, new Float(step_size), new Uint32(n));
 
         // update value for dt
         var currentMeasure = maxcrossSq;
@@ -249,11 +251,11 @@ var Thomson = (function() {
         }
 
         if (iterations % 25 == 0) {
-            console.log('To device time: ' + (toDeviceTime / iterations));
-            console.log('GPU energy computation: ' + (energyTime / iterations));
-            console.log('Energy from device: ' + (partEnergyTime / iterations));
-            console.log('GPU force computation: ' + (forceTime / iterations));
-            console.log('Force from device: ' + (forceTransferTime / iterations));
+            // console.log('To device time: ' + (toDeviceTime / iterations));
+            // console.log('GPU energy computation: ' + (energyTime / iterations));
+            // console.log('Energy from device: ' + (partEnergyTime / iterations));
+            // console.log('GPU force computation: ' + (forceTime / iterations));
+            // console.log('Force from device: ' + (forceTransferTime / iterations));
         }
 
         // remember results for this run
