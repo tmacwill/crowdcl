@@ -60,14 +60,13 @@ var Thomson = (function() {
          points[3*i + 2] += force[3*i + 2] * step_size; \
 \
          /* Normalize coordinates */ \
-         /* \
          float length = sqrt(pow(points[3*i    ], 2) + \
                              pow(points[3*i + 1], 2) + \
                              pow(points[3*i + 2], 2)); \
          points[3*i    ] /= length; \
          points[3*i + 1] /= length; \
          points[3*i + 2] /= length; \
-    */}";
+    }";
 
     var maxCrossSource = "__kernel void clMaxCrossKernel(__global float* points, __global float* force, __global float* result, unsigned int n) { \
         unsigned int i = get_global_id(0); \
@@ -156,10 +155,10 @@ var Thomson = (function() {
      */
     Thomson.prototype.run = function(callback) {
         // send data to gpu
-        start = new Date;
-        var d_points = context.toGPU(points);
-        end = new Date;
-        toDeviceTime += (end - start);
+        //start = new Date;
+        //var d_points = context.toGPU(points);
+        //end = new Date;
+        //toDeviceTime += (end - start);
 
         // compute energies for this configuraton
         var local = Math.min(64, n);
