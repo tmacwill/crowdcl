@@ -1,6 +1,6 @@
 var Thomson = (function() {
-    var energyKernel, forceKernel, updateKernel;
-		var n, points, force, part_energy, d_force, d_energy, context, start, end;
+    var energyKernel, forceKernel, updateKernel, maxCrossKernel, maxCrossReductionKernel;
+    var n, points, force, part_energy, d_force, d_energy, context, start, end;
     var toDeviceTime = 0, partEnergyTime = 0, energyTime = 0, forceTime = 0, forceTransferTime = 0, iterations = 0;
     var energies = [];
     var dt = 1.0;
@@ -50,7 +50,7 @@ var Thomson = (function() {
         result[3*i+2] = total_z / 2.0; \
     }";
 
-		var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, int n) { \
+    var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, int n) { \
          unsigned int i = get_global_id(0); \
          if (i > n) return; \
 \
@@ -60,13 +60,26 @@ var Thomson = (function() {
          points[3*j + 2] += force[3*j + 2] * step_size; \
 \
          // Normalize coordinates \
-         var length = sqrt(pow(points[3*j    ], 2) + \
-                           pow(points[3*j + 1], 2) + \
-                           pow(points[3*j + 2], 2)); \
+         float length = sqrt(pow(points[3*j    ], 2) + \
+                             pow(points[3*j + 1], 2) + \
+                             pow(points[3*j + 2], 2)); \
          points[3*j    ] = points[3*j    ] / length; \
          points[3*j + 1] = points[3*j + 1] / length; \
          points[3*j + 2] = points[3*j + 2] / length; \
     }"
+
+    var maxCrossSource = "__kernel void clMaxCrossKernel(__global float* points, __global float* force, __global float* result, int n) {
+        unsigned int i = get_global_id(0); \
+        if (i > n) \
+            return; \
+\
+        float a = points[3*i+1] * force[3*i+2] - points[3*i+2] * force[3*i+1]; \
+        float b = points[3*i+2] * force[3*i+0] - points[3*i+0] * force[3*i+2]; \
+        float c = points[3*i+0] * force[3*i+1] - points[3*i+1] * force[3*i+0]; \
+ \
+        result[i] = a*a + b*b + c*c; \
+    }";
+
     /**
      * Generate random points on a sphere
      *
@@ -105,17 +118,23 @@ var Thomson = (function() {
         points = new Float32Array(n * 3);
         force = new Float32Array(n * 3);
         part_energy = new Float32Array(n);
+        maxCrossResult = new Float32Array(n);
 
         // connect to gpu
         try {
             context = new KernelContext;
+            utils = new KernelUtils(context);
 
             // compile kernel from source
             energyKernel = context.compile(energyKernelSource, 'clEnergyKernel');
             forceKernel = context.compile(forceKernelSource, 'clForceKernel');
             updateKernel = context.compile(updateKernelSourcem, 'clUpdateKernel');
-						d_energy = context.toGPU(part_energy);
+            maxCrossKernel = context.compile(maxCrossSource, 'clMaxCrossKernel');
+            maxCrossReductionKernel = utils.reductionKernel(Float32Array, '(a > b) ? a : b');
+
+            d_energy = context.toGPU(part_energy);
             d_force = context.toGPU(force);
+            d_maxCrossResult = context.toGPU(maxCrossResult);
 
             // generate an initial set of random points
             generate(points, n);
@@ -180,36 +199,20 @@ var Thomson = (function() {
         //
 
         // Determine the maximum squared cross product
-        var maxcrossSq = 0;
-        for (var j = 0; j < n; ++j) {
-            var a = points[3*j+1] * force[3*j+2] - points[3*j+2] * force[3*j+1];
-            var b = points[3*j+2] * force[3*j+0] - points[3*j+0] * force[3*j+2];
-            var c = points[3*j+0] * force[3*j+1] - points[3*j+1] * force[3*j+0];
-            maxcrossSq = Math.max(maxcrossSq, a*a + b*b + c*c);
-        }
+        maxCrossKernel({
+            local: local,
+            global: global
+        }, d_points, d_force, d_maxCrossResult, new Int32(n));
+
+        // compute step size
+        var maxcrossSq = maxCrossReductionKernel(d_maxCrossResult, n);
         var step_size = dt / (n * Math.pow(maxcrossSq, 0.4));
 
         // update points based on forces
-				updateKernel({
-						local: local,
-						global: global
-				}, d_points, d_force, new Float32(step_size), new Int32(n));
-				/*
-        for (var j = 0; j < n; j++) {
-            // shift each point by the product of force and time step
-            points[3*j    ] += force[3*j    ] * step_size;
-            points[3*j + 1] += force[3*j + 1] * step_size;
-            points[3*j + 2] += force[3*j + 2] * step_size;
-
-            // Normalize coordinates
-            var length = Math.sqrt(Math.pow(points[3*j    ], 2) +
-                                   Math.pow(points[3*j + 1], 2) +
-                                   Math.pow(points[3*j + 2], 2));
-            points[3*j    ] = points[3*j    ] / length;
-            points[3*j + 1] = points[3*j + 1] / length;
-            points[3*j + 2] = points[3*j + 2] / length;
-        }
-				*/
+        updateKernel({
+            local: local,
+            global: global
+        }, d_points, d_force, new Float32(step_size), new Int32(n));
 
         // update value for dt
         var currentMeasure = maxcrossSq;
