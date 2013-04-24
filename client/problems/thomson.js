@@ -1,7 +1,7 @@
 var Thomson = (function() {
     var energyKernel, forceKernel, updateKernel, maxCrossKernel, maxCrossReductionKernel;
-    var n, points, force, part_energy, d_force, d_energy, context, start, end;
-    var toDeviceTime = 0, partEnergyTime = 0, energyTime = 0, forceTime = 0, forceTransferTime = 0, iterations = 0;
+    var n, points, force, part_energy, d_force, d_energy, context, start, end, d_points;
+    var energyTime = 0, forceTime = 0, maxCrossTime = 0, reductionTime = 0, updateTime = 0, iterations = 0;
     var energies = [];
     var dt = 1.0;
     var dtLimit = 0.00006;
@@ -12,7 +12,7 @@ var Thomson = (function() {
     var oscillating = false;
     var energyTest = false;
 
-		// TODO: Parameterize on float/double and use whatever the device supports?
+    // TODO: Parameterize on float/double and use whatever the device supports?
 
     // kernel for computing the energy on the sphere
     var energyKernelSource = "__kernel void clEnergyKernel(__global float* points, __global float* result, int n) { \
@@ -52,7 +52,8 @@ var Thomson = (function() {
 
     var updateKernelSource = "__kernel void clUpdateKernel(__global float* points, __global float* force, float step_size, unsigned int n) { \
          unsigned int i = get_global_id(0); \
-         if (i > n) return; \
+         if (i > n) \
+            return; \
 \
          /* shift each point by the product of force and time step */ \
          points[3*i    ] += force[3*i    ] * step_size; \
@@ -135,6 +136,7 @@ var Thomson = (function() {
             d_energy = context.toGPU(part_energy);
             d_force = context.toGPU(force);
             d_maxCrossResult = context.toGPU(maxCrossResult);
+            d_points = context.toGPU(points);
 
             // generate an initial set of random points
             generate(points, n);
@@ -154,12 +156,6 @@ var Thomson = (function() {
      *
      */
     Thomson.prototype.run = function(callback) {
-        // send data to gpu
-        //start = new Date;
-        //var d_points = context.toGPU(points);
-        //end = new Date;
-        //toDeviceTime += (end - start);
-
         // compute energies for this configuraton
         var local = Math.min(64, n);
         var global = n;
@@ -168,17 +164,13 @@ var Thomson = (function() {
             local: local,
             global: global
         }, d_points, d_energy, new Int32(n));
-        end = new Date;
-        energyTime += (end - start);
+        energyTime += (new Date) - start;
 
         // get energies from GPU, and check if we found a better configuration
-        start = new Date;
-        context.fromGPU(d_energy, part_energy);
-        end = new Date;
-        partEnergyTime += (end - start);
-        var e = energy(part_energy, n);
-        console.log(e);
-        min = Math.min(min, e);
+        // context.fromGPU(d_energy, part_energy);
+        // var e = energy(part_energy, n);
+        // min = Math.min(min, e);
+        // console.log(e);
 
         // compute forces for update step
         start = new Date;
@@ -186,37 +178,33 @@ var Thomson = (function() {
             local: local,
             global: global
         }, d_points, d_force, new Int32(n));
-        end = new Date;
-        forceTime += (end - start);
+        forceTime += (new Date) - start;
 
-        // get forces from GPU to update the points
-        // start = new Date;
-        // context.fromGPU(d_force, force);
-        // end = new Date;
-        // forceTransferTime += (end - start);
-
-        //
         // compute the step size
-        //
-
-        // Determine the maximum squared cross product
+        start = new Date;
         maxCrossKernel({
             local: local,
             global: global
         }, d_points, d_force, d_maxCrossResult, new Uint32(n));
+        maxCrossTime += (new Date) - start;
 
         // compute step size
+        start = new Date;
         var maxcrossSq = maxCrossReductionKernel(d_maxCrossResult, n);
+        reductionTime += (new Date) - start;
         var step_size = dt / (n * Math.pow(maxcrossSq, 0.4));
 
         // update points based on forces
+        start = new Date;
         updateKernel({
             local: local,
             global: global
         }, d_points, d_force, new Float(step_size), new Uint32(n));
+        updateTime += (new Date) - start;
 
         // update value for dt
         var currentMeasure = maxcrossSq;
+
         if (dt > dtLimit) {
             // if maxCrossSq is oscillating, decrease dt
             if (((currentMeasure < lastMeasure) != lastFell) && oscillating) {
@@ -249,25 +237,25 @@ var Thomson = (function() {
             }
         }
 
-        if (iterations % 25 == 0) {
-            // console.log('To device time: ' + (toDeviceTime / iterations));
-            // console.log('GPU energy computation: ' + (energyTime / iterations));
-            // console.log('Energy from device: ' + (partEnergyTime / iterations));
-            // console.log('GPU force computation: ' + (forceTime / iterations));
-            // console.log('Force from device: ' + (forceTransferTime / iterations));
-        }
-
         // remember results for this run
         lastFell = currentMeasure < lastMeasure;
         lastMeasure = currentMeasure;
         ++iterations;
+
+        if (iterations % 25 == 0) {
+            console.log('Energy time: ' + (energyTime / iterations));
+            console.log('Force time: ' + (forceTime / iterations));
+            console.log('Max Cross time: ' + (maxCrossTime / iterations));
+            console.log('Reduction time: ' + (reductionTime / iterations));
+            console.log('Update time: ' + (updateTime / iterations));
+        }
 
         // TODO: Only sync when we hit our stopping condition for the relaxation
 
         // return points and energy
         callback({
             //points: points,
-            score: e
+            score: 0
         });
     };
 

@@ -100,7 +100,6 @@ var CrowdCLient = (function() {
                 iterations++;
 
                 if (iterations == 100) {
-                    console.log(min);
                     console.log(time / 1000);
                 }
             }, timeout);
